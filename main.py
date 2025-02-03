@@ -96,9 +96,7 @@ def main():
         else:
             sys.exit()
     elif result == "challenge":
-        print(f"{Fore.RED}({Fore.WHITE}!{Fore.RED}){Fore.WHITE} Challenge Required")
-        time.sleep(3)
-        sys.exit()
+        security_validation_2_logic(IGClient, username)
     else:
         show_and_save_info(result, username)
 
@@ -200,13 +198,14 @@ def security_validation_logic(IGClient, username):
             time.sleep(3)
             sys.exit()
         else:
+            contact_address = result
             while True:
                 clear()
 
                 print(f"{Fore.CYAN}({Fore.WHITE}+{Fore.CYAN}){Fore.WHITE} Welcome Boss!")    
                 print(f"{Fore.CYAN}({Fore.WHITE}+{Fore.CYAN}){Fore.WHITE} Developed by https://github.com/sadvoting/ \n")
 
-                print(f"{Fore.CYAN}({Fore.WHITE}+{Fore.CYAN}){Fore.WHITE} Code Sent to {result}")
+                print(f"{Fore.CYAN}({Fore.WHITE}+{Fore.CYAN}){Fore.WHITE} Code Sent to {contact_address}")
                 code = input(f"{Fore.CYAN}({Fore.WHITE}+{Fore.CYAN}){Fore.WHITE} Enter Secure Code: ")
                 result, response = IGClient.enter_secure_code_request(code)
                 if result == "bad request":
@@ -261,5 +260,58 @@ def security_validation_logic(IGClient, username):
     else:
         sys.exit()
   
+def security_validation_2_logic(IGClient, username):
+
+    clear()
+
+    print(f"{Fore.CYAN}({Fore.WHITE}+{Fore.CYAN}){Fore.WHITE} Welcome Boss!")    
+    print(f"{Fore.CYAN}({Fore.WHITE}+{Fore.CYAN}){Fore.WHITE} Developed by https://github.com/sadvoting/ \n")
+
+        
+    print(f"{Fore.YELLOW}({Fore.WHITE}!{Fore.YELLOW}){Fore.WHITE} Secure Detected ..\n")
+
+    result, response = IGClient.get_secure_challange_request()
+    if result == "bad request":
+        print(f"{Fore.RED}({Fore.WHITE}!{Fore.RED}){Fore.WHITE} Failed to get Secure Challange Data.\n{response}")
+        time.sleep(3)
+        sys.exit()
+
+    result, response = IGClient.send_secure_challange_code_request()
+    if result == "bad request":
+        print(f"{Fore.RED}({Fore.WHITE}!{Fore.RED}){Fore.WHITE} Exception Occured.\n{response}")
+        time.sleep(3)
+        sys.exit()
+    else:
+        contact_address = result
+        while True:
+            clear()
+
+            print(f"{Fore.CYAN}({Fore.WHITE}+{Fore.CYAN}){Fore.WHITE} Welcome Boss!")    
+            print(f"{Fore.CYAN}({Fore.WHITE}+{Fore.CYAN}){Fore.WHITE} Developed by https://github.com/sadvoting/ \n")
+
+            print(f"{Fore.CYAN}({Fore.WHITE}+{Fore.CYAN}){Fore.WHITE} Code Sent to {contact_address}")
+            code = input(f"{Fore.CYAN}({Fore.WHITE}+{Fore.CYAN}){Fore.WHITE} Enter Secure Code: ")
+            result, response = IGClient.enter_secure_challange_code_request(code)
+            if result == "bad request":
+                print(f"{Fore.RED}({Fore.WHITE}!{Fore.RED}){Fore.WHITE} Exception Occured.\n{response}")
+                time.sleep(3)
+                choice = input(f"{Fore.CYAN}({Fore.WHITE}?{Fore.CYAN}){Fore.WHITE} Do you want to try again? (y/n): ").lower()
+                if "y" in choice:
+                    continue
+                else:
+                    sys.exit()
+            elif result == "invalid":
+                print(f"{Fore.RED}({Fore.WHITE}!{Fore.RED}){Fore.WHITE} Invalid Secure Code")
+                time.sleep(3)
+
+                choice = input(f"{Fore.CYAN}({Fore.WHITE}?{Fore.CYAN}){Fore.WHITE} Do you want to try again? (y/n): ").lower()
+                if "y" in choice:
+                    continue
+                else:
+                    sys.exit()
+            else:
+                show_and_save_info(result, username)
+
+
 if __name__ == "__main__":
     main()

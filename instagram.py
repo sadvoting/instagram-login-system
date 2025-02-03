@@ -68,14 +68,29 @@ class InstagramClient:
                 self.current_data_context = match.group(1)
                 return "2FA", ""
             return "bad request", response_body
+        elif "override_login_2fa_action" in response_body and "challenge_context" in response_body:
+            url_pattern = r'\\\\\\"url\\\\\\":\\\\\\"(.*?)\\\\\\",\\\\\\"api_path'
+            context_pattern = r'\\\\\\"challenge_context\\\\\\":\\\\\\"(.*?)\\\\\\"}}}\\", \(bk.action.'
+
+            url_match = re.search(url_pattern, response_body)
+            context_match = re.search(context_pattern, response_body)
+
+            challenge_url = url_match.group(1) if url_match else None
+            challenge_context = context_match.group(1) if context_match else None
+           
+            if challenge_url is not None and challenge_context is not None:
+                self.current_header_mid = res.headers.get('ig-set-x-mid')
+                self.current_data_context = challenge_context
+                self.current_challange_url = challenge_url.replace("\\\\\\", "")
+                return "challenge", ""
+            
+            return "bad request", response_body
         elif "override_login_2fa_action" in response_body or "INTERNAL_INFRA_THEME" not in response_body:
             match = re.search(r'\\"device_id\\".*?Make, \\"(.*?)\\", \\"', response_body)
             if match:
                 self.current_data_context = match.group(1)
                 return "secure", ""
             return "bad request", response_body
-        elif "challenge_required" in response_body:
-            return "challenge", ""
         else:
             return "bad request", response_body
 
@@ -231,13 +246,112 @@ class InstagramClient:
         )
 
         response_body = res.text
-
+        
         if "IG-Set-Authorization" in response_body or "logged_in_user" in response_body:
             match = re.search(r'IG-Set-Authorization\\\\\\\\\\\\\\": \\\\\\\\\\\\\\"(.*?)\\\\\\\\\\\\\\"', response_body)
             if match:
                 return match.group(1), ""
             return "bad request", response_body
         elif "code validation" in response_body:
+            return "invalid", ""
+        else:
+            return "bad request", response_body
+
+    def get_secure_challange_request(self):
+        headers = {
+            "Host":                  "i.instagram.com",
+            "X-Ig-Device-Id":        self.base_header_deviceid,
+            "X-Ig-Family-Device-Id": self.base_header_family_deviceid,
+            "X-Bloks-Version-Id":    self.base_blocks_versioning_id,
+            "User-Agent":            self.base_useragent,
+            "X-Mid":                 self.current_header_mid,
+            "Content-Type":          "application/x-www-form-urlencoded; charset=UTF-8",
+        }
+
+        res = self.send_request(
+            method="GET",
+            url=f"{self.current_challange_url.replace("https://i.instagram.com/challenge/", "https://i.instagram.com/api/v1/challenge/")}?guid={self.base_header_deviceid}&device_id={self.base_deviceid}&challenge_context={self.current_data_context}",
+            headers=headers,
+            allow_redirects=False
+        )
+
+        response_body = res.text
+
+        if "select_verify_method" in response_body:
+            context_match = re.search(r'"challenge_context":"(.*?)"', response_body)
+            challenge_context = context_match.group(1) if context_match else None
+
+            # Extract nonce_code
+            nonce_match = re.search(r'"nonce_code":"(.*?)"', response_body)
+            nonce_code = nonce_match.group(1) if nonce_match else None
+
+            if challenge_context is not None and nonce_code is not None:
+                self.current_data_context = challenge_context
+                self.current_nonce_code = nonce_code
+                return "secure", ""
+            return "bad request", response_body
+        else:
+            return "bad request", response_body
+
+    def send_secure_challange_code_request(self):
+
+
+        payload = f'''choice=1&has_follow_up_screens=0&bk_client_context={{"bloks_version":"{self.base_blocks_versioning_id}","styles_id":"instagram"}}&challenge_context={self.current_data_context}&bloks_versioning_id={self.base_blocks_versioning_id}'''
+        headers = {
+            "Host":                  "i.instagram.com",
+            "X-Ig-Device-Id":        self.base_header_deviceid,
+            "X-Ig-Family-Device-Id": self.base_header_family_deviceid,
+            "X-Bloks-Version-Id":    self.base_blocks_versioning_id,
+            "User-Agent":            self.base_useragent,
+            "X-Mid":                 self.current_header_mid,
+            "Content-Type":          "application/x-www-form-urlencoded; charset=UTF-8",
+        }
+
+        res = self.send_request(
+            method="POST",
+            url=f"{self.base_url}com.instagram.challenge.navigation.take_challenge/",
+            data=payload.encode("utf-8"),
+            headers=headers,
+            allow_redirects=False
+        )
+
+        response_body = res.text
+
+        if "code we sent" in response_body :
+            match = re.search(r'\(bk\.action\.array\.Make, \\"Enter the 6-digit code we sent to\\", \\"16sp\\", \\"center\\".*?\(bk\.action\.map\.Make, \(bk\.action\.array\.Make, \\"\\\\u3417\\"\),.*?\(bk\.action\.array\.Make, \\"(.*?\*\*\*.*?)\\", \\"16sp\\", \\"bold\\", \\"center\\"', response_body)
+            if match:
+                return match.group(1).replace(')\\", \\"-\\", \\".\\", \\"*\\"), (bk.action.array.Make, \\"', ""), ""
+            return "bad request", response_body
+        else:
+            return "bad request", response_body
+
+    def enter_secure_challange_code_request(self, code):
+        
+        payload = f'''security_code={code}&perf_logging_id=1456832077&has_follow_up_screens=0&bk_client_context=%7B%22bloks_version%22%3A%22{self.base_blocks_versioning_id}%22%2C%22styles_id%22%3A%22instagram%22%7D&challenge_context={self.current_data_context}&bloks_versioning_id={self.base_blocks_versioning_id}'''       
+       
+        headers = {
+            "Host":                  "i.instagram.com",
+            "X-Ig-Device-Id":        self.base_header_deviceid,
+            "X-Ig-Family-Device-Id": self.base_header_family_deviceid,
+            "X-Bloks-Version-Id":    self.base_blocks_versioning_id,
+            "User-Agent":            self.base_useragent,
+            "X-Mid":                 self.current_header_mid,
+            "Content-Type":          "application/x-www-form-urlencoded; charset=UTF-8",
+        }
+
+        res = self.send_request(
+            method="POST",
+            url=f"{self.base_url}com.instagram.challenge.navigation.take_challenge/",
+            data=payload.encode("utf-8"),
+            headers=headers,
+            allow_redirects=False
+        )
+
+        response_body = res.text
+
+        if "profile_pic_url" in response_body or "fbid_v2" in response_body:
+            return res.headers.get('ig-set-authorization'), ""
+        elif "check the code we sent" in response_body:
             return "invalid", ""
         else:
             return "bad request", response_body
