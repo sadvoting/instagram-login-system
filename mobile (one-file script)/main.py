@@ -321,7 +321,7 @@ class InstagramClient:
 
         res = self.send_request(
             method="GET",
-            url=f"{self.current_challange_url.replace("https://i.instagram.com/challenge/", "https://i.instagram.com/api/v1/challenge/")}?guid={self.base_header_deviceid}&device_id={self.base_deviceid}&challenge_context={self.current_data_context}",
+            url=f"{self.current_challange_url.replace('https://i.instagram.com/challenge/', 'https://i.instagram.com/api/v1/challenge/')}?guid={self.base_header_deviceid}&device_id={self.base_deviceid}&challenge_context={self.current_data_context}",     
             headers=headers,
             allow_redirects=False
         )
