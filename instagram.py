@@ -1,4 +1,5 @@
-import requests, uuid, re, time
+import requests, re, time
+from urllib.parse import quote
 
 class InstagramClient:
     def __init__(self, username, password):
@@ -24,6 +25,8 @@ class InstagramClient:
         )
 
     def send_login_request(self, password, username):
+        #Url encode the password to  avoid the bad credentials error
+        password = quote(password)
         payload = f'''params={{"client_input_params":{{"should_show_nested_nta_from_aymh":0,"device_id":"{self.base_deviceid}","sim_phones":[],"login_attempt_count":1,"secure_family_device_id":"","machine_id":"{self.base_machineid}","accounts_list":[{{"credential_type":"google_oauth","account_type":"google_oauth","token":""}}],"auth_secure_device_id":"","has_whatsapp_installed":0,"password":"#PWD_INSTAGRAM:0:{int(time.time())}:{password}","sso_token_map_json_string":"","family_device_id":"{self.base_header_family_deviceid}","fb_ig_device_id":[],"device_emails":[],"try_num":1,"lois_settings":{{"lois_token":"","lara_override":""}},"event_flow":"login_manual","event_step":"home_page","headers_infra_flow_id":"","openid_tokens":{{"":""}},"client_known_key_hash":"","contact_point":"{username}","encrypted_msisdn":""}},"server_params":{{"should_trigger_override_login_2fa_action":0,"is_from_logged_out":0,"should_trigger_override_login_success_action":0,"login_credential_type":"none","server_login_source":"login","waterfall_id":"92fc8f96-b655-4d79-8e0b-70a51d8a16cd","login_source":"Login","is_platform_login":0,"INTERNAL__latency_qpl_marker_id":36707139,"offline_experiment_group":"caa_iteration_v3_perf_ig_4","is_from_landing_page":0,"password_text_input_id":"e5bwah:133","is_from_empty_password":0,"ar_event_source":"login_home_page","qe_device_id":"{self.base_header_deviceid}","username_text_input_id":"e5bwah:132","layered_homepage_experiment_group":null,"device_id":"{self.base_deviceid}","INTERNAL__latency_qpl_instance_id":8.5547960900377E13,"reg_flow_source":"login_home_native_integration_point","is_caa_perf_enabled":1,"credential_type":"password","is_from_password_entry_page":0}}}}&bloks_versioning_id={self.base_blocks_versioning_id}'''
 
         headers = {
